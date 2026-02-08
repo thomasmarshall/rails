@@ -10,6 +10,9 @@ module ActiveRecord
   class FixtureClassNotFound < ActiveRecord::ActiveRecordError # :nodoc:
   end
 
+  class FixtureNotLoaded < ActiveRecord::ActiveRecordError # :nodoc:
+  end
+
   # = Active Record \Fixtures
   #
   # \Fixtures are a way of organizing data that you want to test against; in short, sample data.

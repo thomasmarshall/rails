@@ -1874,3 +1874,14 @@ class MultipleFixtureConnectionsTest < ActiveRecord::TestCase
     end
   end
 end
+
+class FixtureNotLoadedTest < ActiveRecord::TestCase
+  # Intentionally no `fixtures` declaration
+
+  def test_raises_fixture_not_loaded_error
+    error = assert_raises(ActiveRecord::FixtureNotLoaded) do
+      accounts(:signals37)
+    end
+    assert_equal "'accounts' fixtures are not loaded. To load them, add `fixtures :accounts` to your test class.", error.message
+  end
+end

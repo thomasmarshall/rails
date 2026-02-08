@@ -301,6 +301,8 @@ module ActiveRecord
       def method_missing(method, ...)
         if fixture_sets.key?(method.name)
           active_record_fixture(method, ...)
+        elsif fixture_file_exists?(method.name)
+          raise ActiveRecord::FixtureNotLoaded, "'#{method.name}' fixtures are not loaded. To load them, add `fixtures :#{method.name}` to your test class."
         else
           super
         end
@@ -319,6 +321,12 @@ module ActiveRecord
           access_fixture(fs_name, *fixture_names)
         else
           raise StandardError, "No fixture set named '#{fixture_set_name.inspect}'"
+        end
+      end
+
+      def fixture_file_exists?(method_name)
+        self.class.fixture_paths.any? do |path|
+          File.exist?(File.join(path, "#{method_name}.yml"))
         end
       end
 
