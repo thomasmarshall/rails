@@ -996,6 +996,23 @@ module ActiveRecord
         end
       end
 
+      test "connection retries emit a notification" do
+        budget = ActiveRecord::ConnectionAdapters::RetryBudget.new(
+          retries: 1, deadline: nil, reconnectable: true
+        )
+        error = ActiveRecord::ConnectionFailed.new("connection failed")
+
+        events = capture_notifications("retry.active_record") do
+          @connection.attempt_retry(error, budget)
+        end
+
+        assert_equal 1, events.size
+        assert_same @connection, events.first.payload[:connection]
+        assert_same error, events.first.payload[:error]
+        assert_equal :connection, events.first.payload[:retry_type]
+        assert_equal 1, events.first.payload[:attempt]
+      end
+
       test "does not reconnect and retry queries when retries are disabled" do
         assert_raises(ActiveRecord::ConnectionFailed) do
           attempts = 0

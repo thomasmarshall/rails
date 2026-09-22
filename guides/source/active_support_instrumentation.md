@@ -623,6 +623,18 @@ Adapters may add their own data as well.
 
 If the query is not executed in the context of a transaction, `:transaction` is `nil`.
 
+#### `retry.active_record`
+
+This event is emitted after Active Record decides to retry an operation automatically.
+For connection errors, Active Record reconnects before repeating the operation.
+
+| Key           | Value                                                     |
+| ------------- | --------------------------------------------------------- |
+| `:connection` | Connection object                                         |
+| `:error`      | The error that caused the retry                           |
+| `:retry_type` | `:query` for a query retry or `:connection` for reconnect |
+| `:attempt`    | Retry attempt number, starting at 1                       |
+
 #### `strict_loading_violation.active_record`
 
 This event is only emitted when [`config.active_record.action_on_strict_loading_violation`][] is set to `:log`.

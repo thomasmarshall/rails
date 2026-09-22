@@ -1066,10 +1066,20 @@ module ActiveRecord
         return false unless retryable_failure?(exception, budget) && budget.consume
 
         if retryable_query_error?(exception)
+          retry_type = :query
           backoff(budget.attempts_used)
         else
+          retry_type = :connection
           budget.reconnect_consumed!
         end
+
+        ActiveSupport::Notifications.instrument(
+          "retry.active_record",
+          connection: self,
+          error: exception,
+          retry_type: retry_type,
+          attempt: budget.attempts_used
+        )
 
         true
       end
