@@ -87,6 +87,50 @@ module ActiveRecord
         end
       end
 
+      def test_bad_connection_with_missing_database
+        connect_raises_error = proc { |**_conn_params| raise(PG::ConnectionBad, 'FATAL:  database "myapp" does not exist') }
+        PG.stub(:connect, connect_raises_error) do
+          connection = nil
+          assert_raises ActiveRecord::NoDatabaseError do
+            db_config = ActiveRecord::Base.configurations.configs_for(env_name: "arunit", name: "primary")
+            configuration = db_config.configuration_hash.merge(database: "myapp")
+            connection = ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.new(configuration)
+            connection.exec_query("SELECT 1")
+          end
+          assert_not_nil connection
+        end
+      end
+
+      def test_bad_connection_with_database_name_in_hostname
+        connect_raises_error = proc { |**_conn_params| raise(PG::ConnectionBad, 'could not translate host name "myapp.invalid" to address') }
+        PG.stub(:connect, connect_raises_error) do
+          connection = nil
+          error = assert_raises ActiveRecord::DatabaseConnectionError do
+            db_config = ActiveRecord::Base.configurations.configs_for(env_name: "arunit", name: "primary")
+            configuration = db_config.configuration_hash.merge(database: "myapp", host: "myapp.invalid")
+            connection = ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.new(configuration)
+            connection.exec_query("SELECT 1")
+          end
+          assert_not_nil connection
+          assert_equal connection.pool, error.connection_pool
+        end
+      end
+
+      def test_bad_connection_with_unavailable_database
+        connect_raises_error = proc { |**_conn_params| raise(PG::ConnectionBad, 'FATAL:  database "myapp" is not currently accepting connections') }
+        PG.stub(:connect, connect_raises_error) do
+          connection = nil
+          error = assert_raises ActiveRecord::ConnectionNotEstablished do
+            db_config = ActiveRecord::Base.configurations.configs_for(env_name: "arunit", name: "primary")
+            configuration = db_config.configuration_hash.merge(database: "myapp")
+            connection = ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.new(configuration)
+            connection.exec_query("SELECT 1")
+          end
+          assert_not_nil connection
+          assert_equal connection.pool, error.connection_pool
+        end
+      end
+
       def test_bad_connection_to_postgres_database
         connect_raises_error = proc { |**_conn_params| raise(PG::ConnectionBad, 'FATAL:  database "postgres" does not exist') }
         PG.stub(:connect, connect_raises_error) do
